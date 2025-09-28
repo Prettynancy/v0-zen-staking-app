@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
-import { MoonIcon, SunIcon, WalletIcon } from "lucide-react"
+import { MoonIcon, SunIcon } from "lucide-react"
+import { WalletButton } from "@/components/wallet-button"
 
 export function Header() {
   return (
@@ -32,10 +33,7 @@ export function Header() {
             <SunIcon className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <MoonIcon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           </Button>
-          <Button className="gap-2">
-            <WalletIcon className="h-4 w-4" />
-            Connect Wallet
-          </Button>
+          <WalletButton />
         </div>
       </div>
     </header>

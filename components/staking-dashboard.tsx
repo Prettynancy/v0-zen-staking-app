@@ -1,11 +1,67 @@
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { TrendingUpIcon, CoinsIcon, ClockIcon, ZapIcon } from "lucide-react"
+import { TrendingUpIcon, CoinsIcon, ClockIcon, ZapIcon, AlertCircleIcon } from "lucide-react"
+import { useWallet } from "@/lib/wallet"
+import { toast } from "@/hooks/use-toast"
+import { useState } from "react"
 
 export function StakingDashboard() {
+  const { account, isConnected, balance } = useWallet()
+  const [stakeAmount, setStakeAmount] = useState("")
+  const [selectedDuration, setSelectedDuration] = useState(90)
+
+  const handleStake = () => {
+    if (!isConnected) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to start staking",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!stakeAmount || Number.parseFloat(stakeAmount) <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid staking amount",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (Number.parseFloat(stakeAmount) > Number.parseFloat(balance)) {
+      toast({
+        title: "Insufficient Balance",
+        description: "You don't have enough ETH to stake this amount",
+        variant: "destructive",
+      })
+      return
+    }
+
+    toast({
+      title: "Staking Transaction Submitted",
+      description: `Staking ${stakeAmount} ETH for ${selectedDuration} days`,
+    })
+  }
+
+  const getDurationAPY = (days: number) => {
+    switch (days) {
+      case 30:
+        return "8.5%"
+      case 90:
+        return "12.4%"
+      case 180:
+        return "15.8%"
+      default:
+        return "12.4%"
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Hero Section */}
@@ -19,27 +75,46 @@ export function StakingDashboard() {
         </p>
       </div>
 
+      {/* Connection Status Alert */}
+      {!isConnected && (
+        <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <AlertCircleIcon className="h-5 w-5 text-amber-600" />
+              <div>
+                <p className="font-medium text-amber-800 dark:text-amber-200">Wallet Not Connected</p>
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  Connect your wallet to start staking and view your portfolio
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="zen-glow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Staked</CardTitle>
+            <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
             <CoinsIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$24,580.00</div>
-            <p className="text-xs text-muted-foreground">+12.5% from last month</p>
+            <div className="text-2xl font-bold">{isConnected ? `${balance} ETH` : "Connect Wallet"}</div>
+            <p className="text-xs text-muted-foreground">
+              {isConnected ? "Available to stake" : "Connect to view balance"}
+            </p>
           </CardContent>
         </Card>
 
         <Card className="zen-glow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Rewards Earned</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Staked</CardTitle>
             <TrendingUpIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$1,247.32</div>
-            <p className="text-xs text-muted-foreground">+8.2% this week</p>
+            <div className="text-2xl font-bold">$24,580.00</div>
+            <p className="text-xs text-muted-foreground">+12.5% from last month</p>
           </CardContent>
         </Card>
 
@@ -78,28 +153,52 @@ export function StakingDashboard() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Amount to Stake</label>
               <div className="relative">
-                <Input type="number" placeholder="0.00" className="pr-16" />
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  className="pr-16"
+                  value={stakeAmount}
+                  onChange={(e) => setStakeAmount(e.target.value)}
+                  disabled={!isConnected}
+                />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">ETH</div>
               </div>
-              <p className="text-xs text-muted-foreground">Available: 5.2847 ETH</p>
+              <p className="text-xs text-muted-foreground">
+                Available: {isConnected ? `${balance} ETH` : "Connect wallet"}
+              </p>
             </div>
 
             <div className="space-y-3">
               <label className="text-sm font-medium">Staking Duration</label>
               <div className="grid grid-cols-3 gap-2">
-                <Button variant="outline" className="h-12 bg-transparent">
+                <Button
+                  variant={selectedDuration === 30 ? "default" : "outline"}
+                  className="h-12 bg-transparent"
+                  onClick={() => setSelectedDuration(30)}
+                  disabled={!isConnected}
+                >
                   <div className="text-center">
                     <div className="font-semibold">30 days</div>
                     <div className="text-xs text-muted-foreground">8.5% APY</div>
                   </div>
                 </Button>
-                <Button variant="outline" className="h-12 border-primary bg-transparent">
+                <Button
+                  variant={selectedDuration === 90 ? "default" : "outline"}
+                  className="h-12 bg-transparent"
+                  onClick={() => setSelectedDuration(90)}
+                  disabled={!isConnected}
+                >
                   <div className="text-center">
                     <div className="font-semibold">90 days</div>
                     <div className="text-xs text-muted-foreground">12.4% APY</div>
                   </div>
                 </Button>
-                <Button variant="outline" className="h-12 bg-transparent">
+                <Button
+                  variant={selectedDuration === 180 ? "default" : "outline"}
+                  className="h-12 bg-transparent"
+                  onClick={() => setSelectedDuration(180)}
+                  disabled={!isConnected}
+                >
                   <div className="text-center">
                     <div className="font-semibold">180 days</div>
                     <div className="text-xs text-muted-foreground">15.8% APY</div>
@@ -111,19 +210,40 @@ export function StakingDashboard() {
             <div className="p-4 rounded-lg bg-muted/50 space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Estimated Rewards</span>
-                <span className="font-medium">0.124 ETH</span>
+                <span className="font-medium">
+                  {stakeAmount
+                    ? (
+                        Number.parseFloat(stakeAmount) *
+                        (Number.parseFloat(getDurationAPY(selectedDuration)) / 100) *
+                        (selectedDuration / 365)
+                      ).toFixed(4)
+                    : "0.000"}{" "}
+                  ETH
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Network Fee</span>
-                <span className="font-medium">0.003 ETH</span>
+                <span className="font-medium">~0.003 ETH</span>
               </div>
               <div className="border-t pt-2 flex justify-between font-medium">
                 <span>Total Return</span>
-                <span className="text-accent">0.121 ETH</span>
+                <span className="text-accent">
+                  {stakeAmount
+                    ? (
+                        Number.parseFloat(stakeAmount) *
+                          (Number.parseFloat(getDurationAPY(selectedDuration)) / 100) *
+                          (selectedDuration / 365) -
+                        0.003
+                      ).toFixed(4)
+                    : "0.000"}{" "}
+                  ETH
+                </span>
               </div>
             </div>
 
-            <Button className="w-full h-12 text-base">Stake Now</Button>
+            <Button className="w-full h-12 text-base" onClick={handleStake} disabled={!isConnected || !stakeAmount}>
+              {!isConnected ? "Connect Wallet to Stake" : "Stake Now"}
+            </Button>
           </CardContent>
         </Card>
 
@@ -134,62 +254,68 @@ export function StakingDashboard() {
             <p className="text-sm text-muted-foreground">Monitor your current staking positions</p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-4">
-              <div className="p-4 rounded-lg border bg-card/50">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
-                      <CoinsIcon className="h-4 w-4 text-accent" />
-                    </div>
-                    <div>
-                      <div className="font-medium">ETH Stake #1</div>
-                      <div className="text-sm text-muted-foreground">2.5 ETH</div>
-                    </div>
-                  </div>
-                  <Badge variant="secondary">Active</Badge>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Progress</span>
-                    <span>45/90 days</span>
-                  </div>
-                  <Progress value={50} className="h-2" />
-                  <div className="flex justify-between text-sm">
-                    <span>Rewards Earned</span>
-                    <span className="text-accent font-medium">0.062 ETH</span>
-                  </div>
-                </div>
+            {!isConnected ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Connect your wallet to view active stakes</p>
               </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg border bg-card/50">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
+                        <CoinsIcon className="h-4 w-4 text-accent" />
+                      </div>
+                      <div>
+                        <div className="font-medium">ETH Stake #1</div>
+                        <div className="text-sm text-muted-foreground">2.5 ETH</div>
+                      </div>
+                    </div>
+                    <Badge variant="secondary">Active</Badge>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Progress</span>
+                      <span>45/90 days</span>
+                    </div>
+                    <Progress value={50} className="h-2" />
+                    <div className="flex justify-between text-sm">
+                      <span>Rewards Earned</span>
+                      <span className="text-accent font-medium">0.062 ETH</span>
+                    </div>
+                  </div>
+                </div>
 
-              <div className="p-4 rounded-lg border bg-card/50">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                      <CoinsIcon className="h-4 w-4 text-primary" />
+                <div className="p-4 rounded-lg border bg-card/50">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                        <CoinsIcon className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <div className="font-medium">ETH Stake #2</div>
+                        <div className="text-sm text-muted-foreground">1.8 ETH</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-medium">ETH Stake #2</div>
-                      <div className="text-sm text-muted-foreground">1.8 ETH</div>
+                    <Badge>Completed</Badge>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Duration</span>
+                      <span>30/30 days</span>
+                    </div>
+                    <Progress value={100} className="h-2" />
+                    <div className="flex justify-between text-sm">
+                      <span>Total Rewards</span>
+                      <span className="text-accent font-medium">0.038 ETH</span>
                     </div>
                   </div>
-                  <Badge>Completed</Badge>
+                  <Button variant="outline" size="sm" className="w-full mt-3 bg-transparent">
+                    Claim Rewards
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Duration</span>
-                    <span>30/30 days</span>
-                  </div>
-                  <Progress value={100} className="h-2" />
-                  <div className="flex justify-between text-sm">
-                    <span>Total Rewards</span>
-                    <span className="text-accent font-medium">0.038 ETH</span>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" className="w-full mt-3 bg-transparent">
-                  Claim Rewards
-                </Button>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
